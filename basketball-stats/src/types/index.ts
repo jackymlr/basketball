@@ -60,8 +60,10 @@ export interface PlayerStats {
   turnovers: number;
   // 犯规
   fouls: number;
-  // 上场时间（分钟）
+  // 上场时间（秒）
   minutes: number;
+  // 正负值
+  plusMinus: number;
 }
 
 // 应用状态类型
@@ -97,4 +99,5 @@ export const createEmptyPlayerStats = (
   turnovers: 0,
   fouls: 0,
   minutes: 0,
+  plusMinus: 0,
 });
