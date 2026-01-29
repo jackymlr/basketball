@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from '../contexts/useApp';
 import type { PlayerStats } from '../types';
 import { createEmptyPlayerStats } from '../types';
 import { Card, CardBody, CardHeader } from '../components/Card';
@@ -21,20 +21,20 @@ export const GameDetail: React.FC = () => {
 
   const game = gameId ? getGameById(gameId) : undefined;
   const [activeTab, setActiveTab] = useState<'home' | 'away'>('home');
-  const [playerStats, setPlayerStats] = useState<Map<string, PlayerStats>>(new Map());
   const [hasChanges, setHasChanges] = useState(false);
-
-  // 加载已有的数据
-  useEffect(() => {
-    if (!gameId) return;
-    
+  
+  // 使用 useMemo 初始化已有数据
+  const initialStatsMap = useMemo(() => {
+    if (!gameId) return new Map<string, PlayerStats>();
     const existingStats = getStatsByGameId(gameId);
     const statsMap = new Map<string, PlayerStats>();
     existingStats.forEach((stat) => {
       statsMap.set(stat.playerId, stat);
     });
-    setPlayerStats(statsMap);
+    return statsMap;
   }, [gameId, getStatsByGameId]);
+  
+  const [playerStats, setPlayerStats] = useState<Map<string, PlayerStats>>(() => initialStatsMap);
 
   if (!game) {
     return (

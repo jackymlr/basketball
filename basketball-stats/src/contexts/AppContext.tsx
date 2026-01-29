@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import type { AppState, Team, Player, Game, PlayerStats } from '../types';
 import {
   loadState,
@@ -12,35 +12,8 @@ import {
   deletePlayerStats as deletePlayerStatsFromStorage,
   saveMultiplePlayerStats,
 } from '../store/storage';
-
-interface AppContextType {
-  state: AppState;
-  // 队伍操作
-  addTeam: (team: Team) => void;
-  updateTeam: (team: Team) => void;
-  deleteTeam: (teamId: string) => void;
-  getTeamById: (teamId: string) => Team | undefined;
-  // 队员操作
-  addPlayer: (player: Player) => void;
-  updatePlayer: (player: Player) => void;
-  deletePlayer: (playerId: string) => void;
-  getPlayerById: (playerId: string) => Player | undefined;
-  getPlayersByTeamId: (teamId: string) => Player[];
-  // 比赛操作
-  addGame: (game: Game) => void;
-  updateGame: (game: Game) => void;
-  deleteGame: (gameId: string) => void;
-  getGameById: (gameId: string) => Game | undefined;
-  // 数据统计操作
-  addPlayerStats: (stats: PlayerStats) => void;
-  updatePlayerStats: (stats: PlayerStats) => void;
-  deletePlayerStats: (statsId: string) => void;
-  getStatsByGameId: (gameId: string) => PlayerStats[];
-  getStatsByPlayerId: (playerId: string) => PlayerStats[];
-  updateMultiplePlayerStats: (statsArray: PlayerStats[]) => void;
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
+import { AppContext } from './context';
+import type { AppContextType } from './types';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>(loadState);
@@ -149,12 +122,4 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-};
-
-export const useApp = (): AppContextType => {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
-  }
-  return context;
 };

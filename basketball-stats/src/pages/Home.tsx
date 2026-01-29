@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from '../contexts/useApp';
 import { Card, CardBody } from '../components/Card';
 
 export const Home: React.FC = () => {

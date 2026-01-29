@@ -143,7 +143,7 @@ export const deletePlayerStats = (state: AppState, statsId: string): AppState =>
 
 // 批量保存队员数据统计
 export const saveMultiplePlayerStats = (state: AppState, statsArray: PlayerStats[]): AppState => {
-  let newPlayerStats = [...state.playerStats];
+  const newPlayerStats = [...state.playerStats];
   
   statsArray.forEach((stats) => {
     const existingIndex = newPlayerStats.findIndex((ps) => ps.id === stats.id);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { useApp } from '../contexts/AppContext';
+import { useApp } from '../contexts/useApp';
 import type { Game } from '../types';
 import { Card, CardBody } from '../components/Card';
 import { Button } from '../components/Button';
