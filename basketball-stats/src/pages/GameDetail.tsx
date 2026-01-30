@@ -6,6 +6,7 @@ import type { PlayerStats } from '../types';
 import { createEmptyPlayerStats } from '../types';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { Button } from '../components/Button';
+import { Modal } from '../components/Modal';
 
 // 倒计时 Hook - 支持回调
 const useGameTimer = (initialMinutes: number = 12, onTick?: () => void) => {
@@ -124,6 +125,31 @@ export const GameDetail: React.FC = () => {
   const [substitutionTeam, setSubstitutionTeam] = useState<'home' | 'away'>('home');
   // 展开编辑的球员（仅一个展开以节省空间）
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+  // 助攻选择弹窗（2中/3中后弹出）
+  const [assistModal, setAssistModal] = useState<{
+    open: boolean;
+    scorerId: string | null;
+    teamId: string | null;
+  }>({ open: false, scorerId: null, teamId: null });
+  // 先选操作再选人：当前待记录的操作类型（得分 + 其他数据）
+  type ScoreActionType =
+    | '2pt_made' | '2pt_miss' | '3pt_made' | '3pt_miss' | 'ft_made' | 'ft_miss'
+    | 'offensiveRebounds' | 'defensiveRebounds' | 'turnovers' | 'steals' | 'blocks' | 'fouls';
+  const [scoreActionModal, setScoreActionModal] = useState<{ open: boolean; type: ScoreActionType | null }>({
+    open: false,
+    type: null,
+  });
+
+  const SCORE_ACTION_LABELS: Record<ScoreActionType, string> = {
+    '2pt_made': '2中', '2pt_miss': '2投', '3pt_made': '3中', '3pt_miss': '3投', 'ft_made': '罚中', 'ft_miss': '罚投',
+    'offensiveRebounds': '前板', 'defensiveRebounds': '后板', 'turnovers': '失误', 'steals': '抢断', 'blocks': '盖帽', 'fouls': '犯规',
+  };
+  const SCORE_ACTION_TITLE: Record<ScoreActionType, string> = {
+    '2pt_made': '2分命中', '2pt_miss': '2分未中', '3pt_made': '3分命中', '3pt_miss': '3分未中', 'ft_made': '罚球命中', 'ft_miss': '罚球未中',
+    'offensiveRebounds': '前场篮板', 'defensiveRebounds': '后场篮板', 'turnovers': '失误', 'steals': '抢断', 'blocks': '盖帽', 'fouls': '犯规',
+  };
+  const isShootingAction = (t: ScoreActionType) =>
+    ['2pt_made', '2pt_miss', '3pt_made', '3pt_miss', 'ft_made', 'ft_miss'].includes(t);
 
   // 使用 useMemo 初始化已有数据
   const initialStatsMap = useMemo(() => {
@@ -430,6 +456,36 @@ export const GameDetail: React.FC = () => {
 
     setPlayerStats(newStats);
     setHasChanges(true);
+
+    // 2中/3中后弹出助攻选择
+    if (type === '2pt_made' || type === '3pt_made') {
+      setAssistModal({ open: true, scorerId: playerId, teamId });
+    }
+  };
+
+  const closeAssistModal = () => {
+    setAssistModal({ open: false, scorerId: null, teamId: null });
+  };
+
+  const closeScoreActionModal = () => {
+    setScoreActionModal({ open: false, type: null });
+  };
+
+  const applyScoreAction = (playerId: string, teamId: string) => {
+    const type = scoreActionModal.type;
+    if (!type) return;
+    if (isShootingAction(type)) {
+      quickScore(playerId, teamId, type as '2pt_made' | '2pt_miss' | '3pt_made' | '3pt_miss' | 'ft_made' | 'ft_miss');
+    } else {
+      quickAdd(playerId, teamId, type as keyof PlayerStats, 1);
+    }
+    closeScoreActionModal();
+  };
+
+  const recordAssist = (assistPlayerId: string) => {
+    if (!assistModal.teamId) return;
+    quickAdd(assistPlayerId, assistModal.teamId, 'assists', 1);
+    closeAssistModal();
   };
 
   // 保存所有数据
@@ -955,6 +1011,47 @@ export const GameDetail: React.FC = () => {
         </div>
       )}
 
+      {/* 助攻选择弹窗（2中/3中后） */}
+      <Modal
+        isOpen={assistModal.open}
+        onClose={closeAssistModal}
+        title="记录助攻（可选）"
+      >
+        <p className="text-sm text-gray-500 mb-3">选择助攻球员，或点击「无助攻」跳过</p>
+        <div className="space-y-2">
+          {assistModal.scorerId != null && assistModal.teamId != null &&
+            (assistModal.teamId === game.homeTeamId ? homePlayers : awayPlayers)
+              .filter((p) => onCourtPlayers.has(p.id) && p.id !== assistModal.scorerId)
+              .map((player) => (
+                <button
+                  key={player.id}
+                  type="button"
+                  onClick={() => recordAssist(player.id)}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
+                >
+                  <span className="w-9 h-9 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">
+                    {player.number || '?'}
+                  </span>
+                  <span className="font-medium text-gray-900">{player.name}</span>
+                  <span className="text-sm text-gray-500 ml-auto">
+                    {getPlayerStat(player.id, player.teamId).assists} 助
+                  </span>
+                </button>
+              ))}
+        </div>
+        {assistModal.scorerId != null && assistModal.teamId != null &&
+          (assistModal.teamId === game.homeTeamId ? homePlayers : awayPlayers).filter(
+            (p) => onCourtPlayers.has(p.id) && p.id !== assistModal.scorerId
+          ).length === 0 && (
+            <p className="text-sm text-gray-400 py-2">本队暂无其他在场球员</p>
+          )}
+        <div className="mt-4 pt-3 border-t border-gray-200">
+          <Button variant="secondary" onClick={closeAssistModal} className="w-full">
+            无助攻
+          </Button>
+        </div>
+      </Modal>
+
       {/* 队伍切换标签 */}
       <div className="flex border-b border-gray-200">
         <button
@@ -978,6 +1075,108 @@ export const GameDetail: React.FC = () => {
           {awayTeam?.name || '客队'} ({awayPlayers.length}人)
         </button>
       </div>
+
+      {/* 快捷记录：主客队通用，先选操作再选球员 */}
+      {game.status !== 'pending' && (homePlayers.length > 0 || awayPlayers.length > 0) && (
+        <div className="bg-orange-50 border-b border-orange-100 px-3 py-3">
+          <p className="text-xs text-gray-500 mb-2">快捷记录 — 主客队通用，先选操作再选球员</p>
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(SCORE_ACTION_LABELS) as ScoreActionType[]).map((type) => (
+              <Button
+                key={type}
+                size="sm"
+                variant={['2pt_miss', '3pt_miss', 'ft_miss'].includes(type) ? 'secondary' : 'primary'}
+                className="!px-3 !py-1.5 !text-sm"
+                onClick={() => setScoreActionModal({ open: true, type })}
+              >
+                {SCORE_ACTION_LABELS[type]}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 选择球员弹窗：主队左、客队右，先选操作后选人 */}
+      <Modal
+        isOpen={scoreActionModal.open}
+        onClose={closeScoreActionModal}
+        title={scoreActionModal.type ? `选择球员 — ${SCORE_ACTION_TITLE[scoreActionModal.type]}` : '选择球员'}
+      >
+        {scoreActionModal.type && (() => {
+          const actionType = scoreActionModal.type;
+          return (
+          <>
+            <p className="text-sm text-gray-500 mb-3">左侧主队、右侧客队，点击球员记录</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* 主队 */}
+              <div>
+                <h4 className="font-medium text-gray-800 mb-2 pb-1 border-b border-orange-200">
+                  {homeTeam?.name || '主队'}
+                </h4>
+                <div className="space-y-2">
+                  {homePlayers.map((player) => {
+                    const stat = getPlayerStat(player.id, player.teamId);
+                    const statValue = isShootingAction(actionType)
+                      ? `${stat.points} 分`
+                      : `${(stat[actionType as keyof PlayerStats] as number) ?? 0} ${SCORE_ACTION_LABELS[actionType]}`;
+                    return (
+                      <button
+                        key={player.id}
+                        type="button"
+                        onClick={() => applyScoreAction(player.id, player.teamId)}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
+                      >
+                        <span className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                          {player.number || '?'}
+                        </span>
+                        <span className="font-medium text-gray-900 text-sm truncate flex-1 min-w-0">{player.name}</span>
+                        {onCourtPlayers.has(player.id) && (
+                          <span className="text-[10px] bg-green-500 text-white px-1 py-0.5 rounded shrink-0">在场</span>
+                        )}
+                        <span className="text-xs text-gray-500 shrink-0">{statValue}</span>
+                      </button>
+                    );
+                  })}
+                  {homePlayers.length === 0 && <p className="text-sm text-gray-400 py-2">暂无队员</p>}
+                </div>
+              </div>
+              {/* 客队 */}
+              <div>
+                <h4 className="font-medium text-gray-800 mb-2 pb-1 border-b border-orange-200">
+                  {awayTeam?.name || '客队'}
+                </h4>
+                <div className="space-y-2">
+                  {awayPlayers.map((player) => {
+                    const stat = getPlayerStat(player.id, player.teamId);
+                    const statValue = isShootingAction(actionType)
+                      ? `${stat.points} 分`
+                      : `${(stat[actionType as keyof PlayerStats] as number) ?? 0} ${SCORE_ACTION_LABELS[actionType]}`;
+                    return (
+                      <button
+                        key={player.id}
+                        type="button"
+                        onClick={() => applyScoreAction(player.id, player.teamId)}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
+                      >
+                        <span className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                          {player.number || '?'}
+                        </span>
+                        <span className="font-medium text-gray-900 text-sm truncate flex-1 min-w-0">{player.name}</span>
+                        {onCourtPlayers.has(player.id) && (
+                          <span className="text-[10px] bg-green-500 text-white px-1 py-0.5 rounded shrink-0">在场</span>
+                        )}
+                        <span className="text-xs text-gray-500 shrink-0">{statValue}</span>
+                      </button>
+                    );
+                  })}
+                  {awayPlayers.length === 0 && <p className="text-sm text-gray-400 py-2">暂无队员</p>}
+                </div>
+              </div>
+            </div>
+          </>
+          );
+        })()}
+      </Modal>
 
       {/* 队员数据统计 */}
       {currentPlayers.length === 0 ? (
