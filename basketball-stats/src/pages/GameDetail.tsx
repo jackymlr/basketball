@@ -1104,17 +1104,20 @@ export const GameDetail: React.FC = () => {
       >
         {scoreActionModal.type && (() => {
           const actionType = scoreActionModal.type;
+          const homeOnCourt = homePlayers.filter((p) => onCourtPlayers.has(p.id));
+          const awayOnCourt = awayPlayers.filter((p) => onCourtPlayers.has(p.id));
           return (
           <>
-            <p className="text-sm text-gray-500 mb-3">左侧主队、右侧客队，点击球员记录</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <p className="text-sm text-gray-500 mb-3">仅显示在场球员，左侧主队、右侧客队</p>
+            {/* 小屏也左右两列：grid-cols-2 + overflow-x-auto 保证并排可横向滚动 */}
+            <div className="grid grid-cols-2 gap-3 min-w-0 overflow-x-auto">
               {/* 主队 */}
-              <div>
-                <h4 className="font-medium text-gray-800 mb-2 pb-1 border-b border-orange-200">
+              <div className="min-w-[120px]">
+                <h4 className="font-medium text-gray-800 mb-2 pb-1 border-b border-orange-200 text-sm truncate" title={homeTeam?.name || '主队'}>
                   {homeTeam?.name || '主队'}
                 </h4>
-                <div className="space-y-2">
-                  {homePlayers.map((player) => {
+                <div className="space-y-1.5">
+                  {homeOnCourt.map((player) => {
                     const stat = getPlayerStat(player.id, player.teamId);
                     const statValue = isShootingAction(actionType)
                       ? `${stat.points} 分`
@@ -1124,29 +1127,26 @@ export const GameDetail: React.FC = () => {
                         key={player.id}
                         type="button"
                         onClick={() => applyScoreAction(player.id, player.teamId)}
-                        className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
+                        className="w-full flex items-center gap-1.5 p-2 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
                       >
-                        <span className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                        <span className="w-7 h-7 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
                           {player.number ?? '?'}
                         </span>
-                        <span className="font-medium text-gray-900 text-sm truncate flex-1 min-w-0">{player.name}</span>
-                        {onCourtPlayers.has(player.id) && (
-                          <span className="text-[10px] bg-green-500 text-white px-1 py-0.5 rounded shrink-0">在场</span>
-                        )}
-                        <span className="text-xs text-gray-500 shrink-0">{statValue}</span>
+                        <span className="font-medium text-gray-900 text-xs truncate flex-1 min-w-0">{player.name}</span>
+                        <span className="text-[10px] text-gray-500 shrink-0">{statValue}</span>
                       </button>
                     );
                   })}
-                  {homePlayers.length === 0 && <p className="text-sm text-gray-400 py-2">暂无队员</p>}
+                  {homeOnCourt.length === 0 && <p className="text-xs text-gray-400 py-2">暂无在场</p>}
                 </div>
               </div>
               {/* 客队 */}
-              <div>
-                <h4 className="font-medium text-gray-800 mb-2 pb-1 border-b border-orange-200">
+              <div className="min-w-[120px]">
+                <h4 className="font-medium text-gray-800 mb-2 pb-1 border-b border-orange-200 text-sm truncate" title={awayTeam?.name || '客队'}>
                   {awayTeam?.name || '客队'}
                 </h4>
-                <div className="space-y-2">
-                  {awayPlayers.map((player) => {
+                <div className="space-y-1.5">
+                  {awayOnCourt.map((player) => {
                     const stat = getPlayerStat(player.id, player.teamId);
                     const statValue = isShootingAction(actionType)
                       ? `${stat.points} 分`
@@ -1156,20 +1156,17 @@ export const GameDetail: React.FC = () => {
                         key={player.id}
                         type="button"
                         onClick={() => applyScoreAction(player.id, player.teamId)}
-                        className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
+                        className="w-full flex items-center gap-1.5 p-2 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
                       >
-                        <span className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                        <span className="w-7 h-7 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
                           {player.number ?? '?'}
                         </span>
-                        <span className="font-medium text-gray-900 text-sm truncate flex-1 min-w-0">{player.name}</span>
-                        {onCourtPlayers.has(player.id) && (
-                          <span className="text-[10px] bg-green-500 text-white px-1 py-0.5 rounded shrink-0">在场</span>
-                        )}
-                        <span className="text-xs text-gray-500 shrink-0">{statValue}</span>
+                        <span className="font-medium text-gray-900 text-xs truncate flex-1 min-w-0">{player.name}</span>
+                        <span className="text-[10px] text-gray-500 shrink-0">{statValue}</span>
                       </button>
                     );
                   })}
-                  {awayPlayers.length === 0 && <p className="text-sm text-gray-400 py-2">暂无队员</p>}
+                  {awayOnCourt.length === 0 && <p className="text-xs text-gray-400 py-2">暂无在场</p>}
                 </div>
               </div>
             </div>
