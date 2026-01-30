@@ -64,13 +64,18 @@ export const Teams: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between">
+      {/* 页面标题：430 小屏下按钮可全宽 */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">队伍管理</h1>
-          <p className="text-gray-600">管理所有篮球队伍</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">队伍管理</h1>
+          <p className="text-sm sm:text-base text-gray-600">管理所有篮球队伍</p>
         </div>
-        <Button onClick={() => handleOpenModal()}>+ 添加队伍</Button>
+        <Button
+          onClick={() => handleOpenModal()}
+          className="w-full sm:w-auto touch-manipulation min-h-[44px]"
+        >
+          + 添加队伍
+        </Button>
       </div>
 
       {/* 队伍列表 */}

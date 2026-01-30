@@ -113,17 +113,17 @@ export const Games: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      {/* 页面标题：430 小屏下操作区换行 */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">比赛管理</h1>
-          <p className="text-gray-600">管理和记录篮球比赛</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">比赛管理</h1>
+          <p className="text-sm sm:text-base text-gray-600">管理和记录篮球比赛</p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+            className="w-full sm:w-auto min-h-[44px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 touch-manipulation"
           >
             <option value="all">全部状态</option>
             <option value="pending">未开始</option>
@@ -133,6 +133,7 @@ export const Games: React.FC = () => {
           <Button
             onClick={() => handleOpenModal()}
             disabled={state.teams.length < 2}
+            className="w-full sm:w-auto touch-manipulation"
           >
             + 新建比赛
           </Button>

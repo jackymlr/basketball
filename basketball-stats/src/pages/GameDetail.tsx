@@ -122,7 +122,9 @@ export const GameDetail: React.FC = () => {
   // 换人模态框
   const [showSubstitution, setShowSubstitution] = useState(false);
   const [substitutionTeam, setSubstitutionTeam] = useState<'home' | 'away'>('home');
-  
+  // 展开编辑的球员（仅一个展开以节省空间）
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+
   // 使用 useMemo 初始化已有数据
   const initialStatsMap = useMemo(() => {
     if (!gameId) return new Map<string, PlayerStats>();
@@ -629,15 +631,15 @@ export const GameDetail: React.FC = () => {
                 </div>
               </div>
 
-              {/* 计时器控制 */}
-              <div className="flex flex-wrap items-center gap-2">
+              {/* 计时器控制：小屏不换行，可横向滚动 */}
+              <div className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1 shrink-0 min-w-0">
                 {/* 每节时间设置 */}
-                <div className="flex items-center space-x-2 mr-4">
-                  <span className="text-sm text-gray-500">每节:</span>
+                <div className="flex items-center space-x-2 shrink-0">
+                  <span className="text-sm text-gray-500 whitespace-nowrap">每节:</span>
                   <select
                     value={timer.quarterMinutes}
                     onChange={(e) => timer.setQuarterTime(Number(e.target.value))}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm"
+                    className="px-2 py-1 border border-gray-300 rounded text-sm shrink-0"
                     disabled={timer.isRunning}
                   >
                     <option value={5}>5分钟</option>
@@ -650,18 +652,18 @@ export const GameDetail: React.FC = () => {
 
                 {/* 开始/暂停按钮 */}
                 {timer.isRunning ? (
-                  <Button variant="secondary" onClick={timer.pause}>
-                    ⏸️ 暂停
+                  <Button variant="secondary" onClick={timer.pause} className="shrink-0 whitespace-nowrap">
+                    暂停
                   </Button>
                 ) : (
-                  <Button onClick={timer.start}>
-                    ▶️ {timer.timeLeft === timer.quarterMinutes * 60 ? '开始' : '继续'}
+                  <Button onClick={timer.start} className="shrink-0 whitespace-nowrap">
+                    {timer.timeLeft === timer.quarterMinutes * 60 ? '开始' : '继续'}
                   </Button>
                 )}
 
                 {/* 重置按钮 */}
-                <Button variant="secondary" onClick={timer.reset} disabled={timer.isRunning}>
-                  🔄 重置
+                <Button variant="secondary" onClick={timer.reset} disabled={timer.isRunning} className="shrink-0 whitespace-nowrap">
+                  重置
                 </Button>
 
                 {/* 下一节按钮 */}
@@ -669,6 +671,7 @@ export const GameDetail: React.FC = () => {
                   variant="primary"
                   onClick={timer.nextQuarter}
                   disabled={timer.currentQuarter >= 4 || timer.isRunning}
+                  className="shrink-0 whitespace-nowrap"
                 >
                   下一节 →
                 </Button>
@@ -984,210 +987,165 @@ export const GameDetail: React.FC = () => {
           </CardBody>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {currentPlayers.map((player) => {
             const stat = getPlayerStat(player.id, player.teamId);
             const totalRebounds = stat.offensiveRebounds + stat.defensiveRebounds;
             const isOnCourt = onCourtPlayers.has(player.id);
-            
+            const isExpanded = expandedPlayerId === player.id;
+
             return (
               <Card key={player.id} className={isOnCourt ? 'ring-2 ring-green-500' : ''}>
-                <CardHeader className={isOnCourt ? 'bg-green-50' : 'bg-gray-50'}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 ${isOnCourt ? 'bg-green-600' : 'bg-orange-600'} text-white rounded-full flex items-center justify-center font-bold relative`}>
+                <CardHeader className={`${isOnCourt ? 'bg-green-50' : 'bg-gray-50'} py-3`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                      <div className={`w-9 h-9 shrink-0 ${isOnCourt ? 'bg-green-600' : 'bg-orange-600'} text-white rounded-full flex items-center justify-center text-sm font-bold relative`}>
                         {player.number || '?'}
                         {isOnCourt && (
-                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
+                          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
                         )}
                       </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold text-gray-900">{player.name}</h3>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{player.name}</h3>
                           {isOnCourt && (
-                            <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">在场</span>
+                            <span className="text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full shrink-0">在场</span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500">
-                          {player.position || '未设置位置'} · 上场 {formatMinutes(stat.minutes)}
+                        <p className="text-xs text-gray-500 truncate">
+                          {player.position || '—'} · {formatMinutes(stat.minutes)}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-orange-600">{stat.points} 分</p>
-                      <p className="text-sm text-gray-500">
-                        {totalRebounds} 篮板 / {stat.assists} 助攻
-                      </p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <p className="text-lg sm:text-xl font-bold text-orange-600">{stat.points}</p>
+                        <p className="text-xs text-gray-500">{totalRebounds}板 {stat.assists}助</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}
+                        className="px-2 py-1.5 text-xs font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-50 touch-manipulation min-h-[32px]"
+                      >
+                        {isExpanded ? '收起' : '编辑'}
+                      </button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardBody>
-                  {/* 上场时间编辑 */}
-                  <div className="mb-4 pb-4 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <span className="text-sm font-medium text-gray-700">上场时间:</span>
-                        <div className="flex items-center space-x-2">
+                <CardBody className="py-3">
+                  {isExpanded ? (
+                    <>
+                      {/* 上场时间：单行紧凑 */}
+                      <div className="flex flex-wrap items-center gap-2 mb-3 pb-3 border-b border-gray-200">
+                        <span className="text-xs font-medium text-gray-600">上场:</span>
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={() => quickAdd(player.id, player.teamId, 'minutes', -60)}
-                            className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300 text-xs font-bold"
+                            className="w-7 h-7 bg-gray-200 rounded hover:bg-gray-300 text-xs font-bold"
                             disabled={game.status === 'pending'}
                             title="-1分钟"
-                          >
-                            -1m
-                          </button>
+                          >-1m</button>
                           <button
                             onClick={() => quickAdd(player.id, player.teamId, 'minutes', -10)}
-                            className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300 text-xs font-bold"
+                            className="w-7 h-7 bg-gray-200 rounded hover:bg-gray-300 text-xs font-bold"
                             disabled={game.status === 'pending'}
                             title="-10秒"
-                          >
-                            -10s
-                          </button>
-                          <div className="flex items-center space-x-1">
-                            <input
-                              type="number"
-                              value={Math.floor(stat.minutes / 60)}
-                              onChange={(e) => {
-                                const mins = parseInt(e.target.value) || 0;
-                                const secs = stat.minutes % 60;
-                                updateStat(player.id, player.teamId, 'minutes', mins * 60 + secs);
-                              }}
-                              className="w-12 h-8 text-center border border-gray-300 rounded text-sm"
-                              min="0"
-                              disabled={game.status === 'pending'}
-                              title="分钟"
-                            />
-                            <span className="text-gray-500">:</span>
-                            <input
-                              type="number"
-                              value={stat.minutes % 60}
-                              onChange={(e) => {
-                                const mins = Math.floor(stat.minutes / 60);
-                                const secs = Math.min(59, Math.max(0, parseInt(e.target.value) || 0));
-                                updateStat(player.id, player.teamId, 'minutes', mins * 60 + secs);
-                              }}
-                              className="w-12 h-8 text-center border border-gray-300 rounded text-sm"
-                              min="0"
-                              max="59"
-                              disabled={game.status === 'pending'}
-                              title="秒"
-                            />
-                          </div>
-                          <button
-                            onClick={() => quickAdd(player.id, player.teamId, 'minutes', 10)}
-                            className="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs font-bold"
-                            disabled={game.status === 'pending'}
-                            title="+10秒"
-                          >
-                            +10s
-                          </button>
-                          <button
-                            onClick={() => quickAdd(player.id, player.teamId, 'minutes', 60)}
-                            className="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs font-bold"
-                            disabled={game.status === 'pending'}
-                            title="+1分钟"
-                          >
-                            +1m
-                          </button>
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        总计: <span className="font-mono font-medium text-gray-900">{formatMinutes(stat.minutes)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                    {statFields.map((field) => (
-                      <div
-                        key={field.key}
-                        className="bg-gray-50 rounded-lg p-3 text-center"
-                      >
-                        <p className="text-xs text-gray-500 mb-1">{field.shortLabel}</p>
-                        <div className="flex items-center justify-center space-x-1">
-                          <button
-                            onClick={() =>
-                              quickAdd(player.id, player.teamId, field.key, -1)
-                            }
-                            className="w-6 h-6 bg-gray-200 rounded hover:bg-gray-300 text-sm font-bold"
-                            disabled={game.status === 'pending'}
-                          >
-                            -
-                          </button>
+                          >-10</button>
                           <input
                             type="number"
-                            value={stat[field.key] as number}
-                            onChange={(e) =>
-                              updateStat(
-                                player.id,
-                                player.teamId,
-                                field.key,
-                                parseInt(e.target.value) || 0
-                              )
-                            }
-                            className="w-12 h-8 text-center border border-gray-300 rounded text-sm"
+                            value={Math.floor(stat.minutes / 60)}
+                            onChange={(e) => {
+                              const mins = parseInt(e.target.value) || 0;
+                              const secs = stat.minutes % 60;
+                              updateStat(player.id, player.teamId, 'minutes', mins * 60 + secs);
+                            }}
+                            className="w-10 h-7 text-center border border-gray-300 rounded text-xs"
                             min="0"
                             disabled={game.status === 'pending'}
+                            title="分钟"
+                          />
+                          <span className="text-gray-400">:</span>
+                          <input
+                            type="number"
+                            value={stat.minutes % 60}
+                            onChange={(e) => {
+                              const mins = Math.floor(stat.minutes / 60);
+                              const secs = Math.min(59, Math.max(0, parseInt(e.target.value) || 0));
+                              updateStat(player.id, player.teamId, 'minutes', mins * 60 + secs);
+                            }}
+                            className="w-10 h-7 text-center border border-gray-300 rounded text-xs"
+                            min="0"
+                            max="59"
+                            disabled={game.status === 'pending'}
+                            title="秒"
                           />
                           <button
-                            onClick={() =>
-                              quickAdd(player.id, player.teamId, field.key, 1)
-                            }
-                            className="w-6 h-6 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm font-bold"
+                            onClick={() => quickAdd(player.id, player.teamId, 'minutes', 10)}
+                            className="w-7 h-7 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs font-bold"
                             disabled={game.status === 'pending'}
-                          >
-                            +
-                          </button>
+                            title="+10秒"
+                          >+10</button>
+                          <button
+                            onClick={() => quickAdd(player.id, player.teamId, 'minutes', 60)}
+                            className="w-7 h-7 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs font-bold"
+                            disabled={game.status === 'pending'}
+                            title="+1分钟"
+                          >+1m</button>
                         </div>
+                        <span className="text-xs text-gray-500 font-mono">{formatMinutes(stat.minutes)}</span>
                       </div>
-                    ))}
-                  </div>
-                  {/* 快捷得分按钮 */}
-                  {game.status !== 'pending' && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <p className="text-sm text-gray-500 mb-2">快捷得分：</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => quickScore(player.id, player.teamId, '2pt_made')}
-                        >
-                          +2分 命中
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => quickScore(player.id, player.teamId, '2pt_miss')}
-                        >
-                          2分 不中
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => quickScore(player.id, player.teamId, '3pt_made')}
-                        >
-                          +3分 命中
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => quickScore(player.id, player.teamId, '3pt_miss')}
-                        >
-                          3分 不中
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => quickScore(player.id, player.teamId, 'ft_made')}
-                        >
-                          +罚球 命中
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => quickScore(player.id, player.teamId, 'ft_miss')}
-                        >
-                          罚球 不中
-                        </Button>
+                      {/* 统计项：紧凑网格 */}
+                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2 mb-3">
+                        {statFields.map((field) => (
+                          <div key={field.key} className="bg-gray-50 rounded p-2 text-center">
+                            <p className="text-[10px] text-gray-500 mb-0.5 leading-tight">{field.shortLabel}</p>
+                            <div className="flex items-center justify-center gap-0.5">
+                              <button
+                                onClick={() => quickAdd(player.id, player.teamId, field.key, -1)}
+                                className="w-5 h-5 bg-gray-200 rounded hover:bg-gray-300 text-xs font-bold leading-none"
+                                disabled={game.status === 'pending'}
+                              >−</button>
+                              <input
+                                type="number"
+                                value={stat[field.key] as number}
+                                onChange={(e) =>
+                                  updateStat(player.id, player.teamId, field.key, parseInt(e.target.value) || 0)
+                                }
+                                className="w-8 h-6 text-center border border-gray-300 rounded text-xs"
+                                min="0"
+                                disabled={game.status === 'pending'}
+                              />
+                              <button
+                                onClick={() => quickAdd(player.id, player.teamId, field.key, 1)}
+                                className="w-5 h-5 bg-orange-500 text-white rounded hover:bg-orange-600 text-xs font-bold leading-none"
+                                disabled={game.status === 'pending'}
+                              >+</button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
+                      {/* 快捷得分：单行短标签 */}
+                      {game.status !== 'pending' && (
+                        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-200">
+                          <Button size="sm" className="!px-2 !py-1 !text-xs" onClick={() => quickScore(player.id, player.teamId, '2pt_made')}>2中</Button>
+                          <Button size="sm" variant="secondary" className="!px-2 !py-1 !text-xs" onClick={() => quickScore(player.id, player.teamId, '2pt_miss')}>2投</Button>
+                          <Button size="sm" className="!px-2 !py-1 !text-xs" onClick={() => quickScore(player.id, player.teamId, '3pt_made')}>3中</Button>
+                          <Button size="sm" variant="secondary" className="!px-2 !py-1 !text-xs" onClick={() => quickScore(player.id, player.teamId, '3pt_miss')}>3投</Button>
+                          <Button size="sm" className="!px-2 !py-1 !text-xs" onClick={() => quickScore(player.id, player.teamId, 'ft_made')}>罚中</Button>
+                          <Button size="sm" variant="secondary" className="!px-2 !py-1 !text-xs" onClick={() => quickScore(player.id, player.teamId, 'ft_miss')}>罚投</Button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <span>上场 {formatMinutes(stat.minutes)}</span>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedPlayerId(player.id)}
+                        className="text-orange-600 font-medium touch-manipulation"
+                      >
+                        编辑数据 →
+                      </button>
                     </div>
                   )}
                 </CardBody>

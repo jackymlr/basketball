@@ -43,10 +43,14 @@ export const Home: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* 标题 */}
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">🏀 篮球数据统计</h1>
-        <p className="text-gray-600">管理你的篮球比赛、队伍和队员数据</p>
+      {/* 标题：430 小屏缩小字号 */}
+      <div className="text-center px-1">
+        <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">
+          🏀 篮球数据统计
+        </h1>
+        <p className="text-sm sm:text-base text-gray-600">
+          管理你的篮球比赛、队伍和队员数据
+        </p>
       </div>
 
       {/* 统计卡片 */}
@@ -116,19 +120,24 @@ export const Home: React.FC = () => {
                   <Link
                     key={game.id}
                     to={`/games/${game.id}`}
-                    className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="block p-3 sm:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors touch-manipulation"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <span className="font-medium">{homeTeam?.name || '未知队伍'}</span>
-                        <span className="text-2xl font-bold text-orange-600">
+                    {/* 小屏竖排：主队/比分/客队 与 状态/日期 分两行 */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 min-w-0">
+                        <span className="font-medium text-sm sm:text-base truncate max-w-[100px] sm:max-w-none">
+                          {homeTeam?.name || '未知队伍'}
+                        </span>
+                        <span className="text-xl sm:text-2xl font-bold text-orange-600 shrink-0">
                           {game.homeScore} - {game.awayScore}
                         </span>
-                        <span className="font-medium">{awayTeam?.name || '未知队伍'}</span>
+                        <span className="font-medium text-sm sm:text-base truncate max-w-[100px] sm:max-w-none">
+                          {awayTeam?.name || '未知队伍'}
+                        </span>
                       </div>
-                      <div className="text-right">
+                      <div className="flex items-center justify-between sm:justify-end gap-2 sm:text-right">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${
+                          className={`px-2 py-1 rounded-full text-xs shrink-0 ${
                             game.status === 'finished'
                               ? 'bg-green-100 text-green-800'
                               : game.status === 'ongoing'
@@ -142,7 +151,7 @@ export const Home: React.FC = () => {
                             ? '进行中'
                             : '未开始'}
                         </span>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-xs sm:text-sm text-gray-500">
                           {new Date(game.date).toLocaleDateString('zh-CN')}
                         </p>
                       </div>

@@ -91,17 +91,17 @@ export const Players: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 页面标题 */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      {/* 页面标题：430 小屏下操作区换行 */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">队员管理</h1>
-          <p className="text-gray-600">管理所有队伍的队员</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">队员管理</h1>
+          <p className="text-sm sm:text-base text-gray-600">管理所有队伍的队员</p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center">
           <select
             value={selectedTeamId}
             onChange={(e) => setSelectedTeamId(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+            className="w-full sm:w-auto min-h-[44px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 touch-manipulation"
           >
             <option value="all">全部队伍</option>
             {state.teams.map((team) => (
@@ -113,6 +113,7 @@ export const Players: React.FC = () => {
           <Button
             onClick={() => handleOpenModal()}
             disabled={state.teams.length === 0}
+            className="w-full sm:w-auto touch-manipulation"
           >
             + 添加队员
           </Button>
