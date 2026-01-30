@@ -25,9 +25,11 @@ export default defineConfig({
       },
     },
   ],
-  // GitHub Pages 部署在子路径，例如 https://username.github.io/basketball-stats/
+  // GitHub Pages：自定义域名用根路径 base '/'；*.github.io 用 '/<仓库名>/'
   base:
     process.env.GITHUB_PAGES === 'true'
-      ? `/${process.env.BASE_PATH || 'basketball-stats'}/`
+      ? process.env.BASE_PATH
+        ? `/${String(process.env.BASE_PATH).replace(/^\/|\/$/g, '')}/`
+        : '/'
       : '/',
 })

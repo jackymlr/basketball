@@ -37,13 +37,16 @@ jobs:
         working-directory: basketball-stats
         env:
           GITHUB_PAGES: "true"
-          BASE_PATH: ${{ github.event.repository.name }}
-        run: npm run build
+          BASE_PATH: ${{ vars.BASE_PATH || '' }}
+        run: |
+          echo "BASE_PATH=$BASE_PATH"
+          npm run build
+          ls -la dist/
+          test -f dist/404.html && echo "404.html exists" || echo "404.html MISSING"
+          grep -o 'src="[^"]*"' dist/index.html || true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
-        with:
-          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

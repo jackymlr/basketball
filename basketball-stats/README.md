@@ -152,6 +152,31 @@ jobs:
 3. 仓库 **Settings → Pages** 里 **Source** 选 **GitHub Actions**，然后推送代码到 `main` 触发部署。
 4. 访问：`https://<你的用户名>.github.io/<父仓库名>/`（例如 `https://ethan.github.io/basketball/`）
 
+### 使用自定义域名
+
+- 构建时 **不设置** `BASE_PATH`（或留空），站点会以根路径部署，访问：`https://你的域名/`，资源为 `https://你的域名/assets/xxx.js`。
+- 仓库 **Settings → Secrets and variables → Actions → Variables** 中不要添加 `BASE_PATH`，或保持为空即可。
+
+### 使用默认的 *.github.io 子路径
+
+- 访问地址为 `https://<用户名>.github.io/<仓库名>/` 时，需在仓库 **Settings → Secrets and variables → Actions → Variables** 里添加变量：  
+  **Name**: `BASE_PATH`，**Value**: 仓库名（如 `basketball`）。  
+  ​
+### 部署后出现 404
+
+1. **自定义域名**：应访问根路径 `https://你的域名/`，不要加 `/basketball`。  
+   **github.io**：应访问 `https://<用户名>.github.io/<仓库名>/`（末尾要有 `/`）。
+
+2. **看具体是哪个地址 404**  
+   打开浏览器开发者工具（F12）→ **Network**，刷新页面，看哪一行是红色的 404，记下完整 URL。
+
+3. **若是 JS/CSS 文件 404**  
+   多半是 base 路径不对。到仓库 **Actions** 里点开最近一次 “Deploy to GitHub Pages” 的 **Build** 步骤，看日志里 `BASE_PATH=` 和 `src="..."` 的输出，确认脚本地址是 `/<仓库名>/assets/...`。  
+   仓库名必须和 Settings 里的一致（区分大小写）。
+
+4. **若是打开子路径（如 /basketball/games/1）整页 404**  
+   需要存在 `404.html`。构建步骤里应出现 “404.html exists”；若没有，说明构建时没复制成功，需要检查 `vite.config.ts` 里的 copy-404 插件。
+
 ## 使用说明
 
 1. **创建队伍**: 首先在"队伍管理"中创建至少两支队伍
