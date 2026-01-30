@@ -800,7 +800,7 @@ export const GameDetail: React.FC = () => {
                           className="flex items-center space-x-2 bg-green-100 px-3 py-2 rounded-lg"
                         >
                           <span className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                            {player.number || '?'}
+                            {player.number ?? '?'}
                           </span>
                           <div>
                             <p className="font-medium text-sm">{player.name}</p>
@@ -838,7 +838,7 @@ export const GameDetail: React.FC = () => {
                           className="flex items-center space-x-2 bg-blue-100 px-3 py-2 rounded-lg"
                         >
                           <span className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                            {player.number || '?'}
+                            {player.number ?? '?'}
                           </span>
                           <div>
                             <p className="font-medium text-sm">{player.name}</p>
@@ -889,7 +889,7 @@ export const GameDetail: React.FC = () => {
                         >
                           <div className="flex items-center space-x-3">
                             <span className="w-10 h-10 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold">
-                              {player.number || '?'}
+                              {player.number ?? '?'}
                             </span>
                             <div>
                               <p className="font-medium">{player.name}</p>
@@ -955,7 +955,7 @@ export const GameDetail: React.FC = () => {
                         >
                           <div className="flex items-center space-x-3">
                             <span className="w-10 h-10 bg-gray-400 text-white rounded-full flex items-center justify-center font-bold">
-                              {player.number || '?'}
+                              {player.number ?? '?'}
                             </span>
                             <div>
                               <p className="font-medium">{player.name}</p>
@@ -1030,7 +1030,7 @@ export const GameDetail: React.FC = () => {
                   className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
                 >
                   <span className="w-9 h-9 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold shrink-0">
-                    {player.number || '?'}
+                    {player.number ?? '?'}
                   </span>
                   <span className="font-medium text-gray-900">{player.name}</span>
                   <span className="text-sm text-gray-500 ml-auto">
@@ -1127,7 +1127,7 @@ export const GameDetail: React.FC = () => {
                         className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
                       >
                         <span className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
-                          {player.number || '?'}
+                          {player.number ?? '?'}
                         </span>
                         <span className="font-medium text-gray-900 text-sm truncate flex-1 min-w-0">{player.name}</span>
                         {onCourtPlayers.has(player.id) && (
@@ -1159,7 +1159,7 @@ export const GameDetail: React.FC = () => {
                         className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-300 transition-colors text-left touch-manipulation"
                       >
                         <span className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
-                          {player.number || '?'}
+                          {player.number ?? '?'}
                         </span>
                         <span className="font-medium text-gray-900 text-sm truncate flex-1 min-w-0">{player.name}</span>
                         {onCourtPlayers.has(player.id) && (
@@ -1199,7 +1199,7 @@ export const GameDetail: React.FC = () => {
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
                       <div className={`w-9 h-9 shrink-0 ${isOnCourt ? 'bg-green-600' : 'bg-orange-600'} text-white rounded-full flex items-center justify-center text-sm font-bold relative`}>
-                        {player.number || '?'}
+                        {player.number ?? '?'}
                         {isOnCourt && (
                           <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
                         )}

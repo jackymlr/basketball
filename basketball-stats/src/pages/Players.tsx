@@ -287,7 +287,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 bg-orange-600 text-white rounded-full flex items-center justify-center text-xl font-bold">
-            {player.number || '?'}
+            {player.number ?? '?'}
           </div>
           <div>
             <h4 className="font-semibold text-gray-900">{player.name}</h4>
