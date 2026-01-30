@@ -13,7 +13,7 @@ const useGameTimer = (initialMinutes: number = 12, onTick?: () => void) => {
   const [isRunning, setIsRunning] = useState(false);
   const [currentQuarter, setCurrentQuarter] = useState(1);
   const [quarterMinutes, setQuarterMinutes] = useState(initialMinutes);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onTickRef = useRef(onTick);
 
   // 更新回调引用
@@ -246,26 +246,6 @@ export const GameDetail: React.FC = () => {
         setPlayerStats(newStats);
         setHasChanges(true);
       }
-    }
-    
-    setOnCourtPlayers(newOnCourt);
-  };
-
-  // 快速换人（一换一）
-  const substitutePlayer = (outPlayerId: string, inPlayerId: string, teamId: string) => {
-    const newOnCourt = new Set(onCourtPlayers);
-    newOnCourt.delete(outPlayerId);
-    newOnCourt.add(inPlayerId);
-    
-    // 确保换上的球员有统计数据
-    if (!playerStats.has(inPlayerId)) {
-      const newStats = new Map(playerStats);
-      newStats.set(inPlayerId, {
-        ...createEmptyPlayerStats(gameId!, inPlayerId, teamId),
-        id: uuidv4(),
-      });
-      setPlayerStats(newStats);
-      setHasChanges(true);
     }
     
     setOnCourtPlayers(newOnCourt);

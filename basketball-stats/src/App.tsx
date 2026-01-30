@@ -8,9 +8,11 @@ import { Games } from './pages/Games';
 import { GameDetail } from './pages/GameDetail';
 
 function App() {
+  // GitHub Pages 部署在子路径时，需要设置 basename
+  const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
   return (
     <AppProvider>
-      <Router>
+      <Router basename={basename}>
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
