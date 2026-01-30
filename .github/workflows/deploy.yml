@@ -27,14 +27,16 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: basketball-stats/package-lock.json
 
       - name: Install
         run: npm ci
+        working-directory: basketball-stats
 
       - name: Build
+        working-directory: basketball-stats
         env:
           GITHUB_PAGES: "true"
-          # 与仓库名一致，例如仓库 basketball-stats 则访问 https://<username>.github.io/basketball-stats/
           BASE_PATH: ${{ github.event.repository.name }}
         run: npm run build
 
@@ -44,7 +46,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./dist"
+          path: basketball-stats/dist
 
   deploy:
     environment:
