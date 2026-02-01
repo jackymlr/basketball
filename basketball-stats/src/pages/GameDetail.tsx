@@ -7,6 +7,16 @@ import { createEmptyPlayerStats } from '../types';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 // 倒计时 Hook - 支持回调
 const useGameTimer = (initialMinutes: number = 12, onTick?: () => void) => {
@@ -233,6 +243,63 @@ export const GameDetail: React.FC = () => {
     });
     return { homeScore, awayScore };
   }, [playerStats, game.homeTeamId, game.awayTeamId]);
+
+  // 单节比分：从 game 读取，默认 4 节均为 0
+  const quarterPoints = useMemo(() => {
+    const home = [...(game.quarterPoints?.home ?? [0, 0, 0, 0])];
+    const away = [...(game.quarterPoints?.away ?? [0, 0, 0, 0])];
+    while (home.length < 4) home.push(0);
+    while (away.length < 4) away.push(0);
+    return { home: home.slice(0, 4), away: away.slice(0, 4) };
+  }, [game.quarterPoints]);
+
+  // 下一节时保存当前节比分到 game.quarterPoints
+  const handleNextQuarter = () => {
+    const q = timer.currentQuarter;
+    if (q > 4) {
+      timer.nextQuarter();
+      return;
+    }
+    const prevHome = quarterPoints.home.slice(0, q - 1).reduce((a, b) => a + b, 0);
+    const prevAway = quarterPoints.away.slice(0, q - 1).reduce((a, b) => a + b, 0);
+    const newHome = [...quarterPoints.home];
+    const newAway = [...quarterPoints.away];
+    newHome[q - 1] = Math.max(0, liveScores.homeScore - prevHome);
+    newAway[q - 1] = Math.max(0, liveScores.awayScore - prevAway);
+    updateGame({
+      ...game,
+      quarterPoints: { home: newHome, away: newAway },
+    });
+    timer.nextQuarter();
+  };
+
+  // 得分走势：每次得分变化追加一个点，用于实时折线图
+  const [scoreHistory, setScoreHistory] = useState<{ 主队: number; 客队: number }[]>([]);
+  const lastScoresRef = useRef({ home: 0, away: 0 });
+  const prevGameIdRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    const h = liveScores.homeScore;
+    const a = liveScores.awayScore;
+    if (gameId !== prevGameIdRef.current) {
+      prevGameIdRef.current = gameId;
+      setScoreHistory([{ 主队: h, 客队: a }]);
+      lastScoresRef.current = { home: h, away: a };
+      return;
+    }
+    if (lastScoresRef.current.home !== h || lastScoresRef.current.away !== a) {
+      setScoreHistory((prev) => [...prev, { 主队: h, 客队: a }]);
+      lastScoresRef.current = { home: h, away: a };
+    }
+  }, [gameId, liveScores.homeScore, liveScores.awayScore]);
+
+  const scoreChartData = useMemo(() => {
+    return scoreHistory.map((entry, i) => ({
+      name: i === 0 ? '开始' : `第${i}次`,
+      主队: entry.主队,
+      客队: entry.客队,
+    }));
+  }, [scoreHistory]);
 
   // 获取或创建队员统计数据
   const getPlayerStat = (playerId: string, teamId: string): PlayerStats => {
@@ -523,15 +590,37 @@ export const GameDetail: React.FC = () => {
     });
   };
 
-  // 结束比赛
+  // 结束比赛：先保存当前节比分到单节统计，再保存总分并设为已结束
   const handleEndGame = () => {
-    if (window.confirm('确定要结束这场比赛吗？')) {
-      handleSave();
-      updateGame({
-        ...game,
-        status: 'finished',
-      });
+    if (!window.confirm('确定要结束这场比赛吗？')) return;
+    const q = timer.currentQuarter;
+    let nextQuarterPoints = quarterPoints;
+    if (q <= 4) {
+      const prevHome = quarterPoints.home.slice(0, q - 1).reduce((a, b) => a + b, 0);
+      const prevAway = quarterPoints.away.slice(0, q - 1).reduce((a, b) => a + b, 0);
+      const newHome = [...quarterPoints.home];
+      const newAway = [...quarterPoints.away];
+      newHome[q - 1] = Math.max(0, liveScores.homeScore - prevHome);
+      newAway[q - 1] = Math.max(0, liveScores.awayScore - prevAway);
+      nextQuarterPoints = { home: newHome, away: newAway };
     }
+    const statsArray = Array.from(playerStats.values());
+    updateMultiplePlayerStats(statsArray);
+    let homeScore = 0;
+    let awayScore = 0;
+    statsArray.forEach((stat) => {
+      if (stat.teamId === game.homeTeamId) homeScore += stat.points;
+      else if (stat.teamId === game.awayTeamId) awayScore += stat.points;
+    });
+    updateGame({
+      ...game,
+      quarterPoints: nextQuarterPoints,
+      homeScore,
+      awayScore,
+      status: 'finished',
+    });
+    setHasChanges(false);
+    alert('数据已保存！');
   };
 
   // 统计数据字段配置
@@ -557,6 +646,19 @@ export const GameDetail: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 小屏悬浮比分：移动端快捷记录时也能看到总比分 */}
+      <div className="fixed left-1/2 top-[max(0.5rem,var(--sat))] z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl bg-black/65 px-3 py-2 shadow-lg backdrop-blur-sm sm:hidden">
+        <span className="max-w-[72px] truncate text-xs text-white/90" title={homeTeam?.name || '主队'}>
+          {homeTeam?.name || '主队'}
+        </span>
+        <span className="text-lg font-bold tabular-nums text-white">
+          {liveScores.homeScore} - {liveScores.awayScore}
+        </span>
+        <span className="max-w-[72px] truncate text-xs text-white/90" title={awayTeam?.name || '客队'}>
+          {awayTeam?.name || '客队'}
+        </span>
+      </div>
+
       {/* 返回按钮 */}
       <Button variant="secondary" onClick={() => navigate('/games')}>
         ← 返回比赛列表
@@ -722,10 +824,10 @@ export const GameDetail: React.FC = () => {
                   重置
                 </Button>
 
-                {/* 下一节按钮 */}
+                {/* 下一节按钮：会保存当前节比分到单节统计 */}
                 <Button
                   variant="primary"
-                  onClick={timer.nextQuarter}
+                  onClick={handleNextQuarter}
                   disabled={timer.currentQuarter >= 4 || timer.isRunning}
                   className="shrink-0 whitespace-nowrap"
                 >
@@ -758,6 +860,97 @@ export const GameDetail: React.FC = () => {
             </div>
           </CardBody>
         </Card>
+      )}
+
+      {/* 单节比分统计 + 得分折线图 */}
+      {game.status !== 'pending' && (
+        <>
+          <Card>
+            <CardHeader className="bg-orange-50">
+              <h3 className="font-semibold text-gray-900">单节比分</h3>
+            </CardHeader>
+            <CardBody>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-3 py-2 text-left font-medium text-gray-700">节次</th>
+                      <th className="px-3 py-2 text-center font-medium text-gray-700">{homeTeam?.name || '主队'}</th>
+                      <th className="px-3 py-2 text-center font-medium text-gray-700">{awayTeam?.name || '客队'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[1, 2, 3, 4].map((q) => {
+                      const isCurrent = q === timer.currentQuarter;
+                      const prevHome = quarterPoints.home.slice(0, q - 1).reduce((a, b) => a + b, 0);
+                      const prevAway = quarterPoints.away.slice(0, q - 1).reduce((a, b) => a + b, 0);
+                      const displayHome = isCurrent
+                        ? Math.max(0, liveScores.homeScore - prevHome)
+                        : (quarterPoints.home[q - 1] ?? 0);
+                      const displayAway = isCurrent
+                        ? Math.max(0, liveScores.awayScore - prevAway)
+                        : (quarterPoints.away[q - 1] ?? 0);
+                      return (
+                        <tr key={q} className={`border-t ${isCurrent ? 'bg-orange-50' : ''}`}>
+                          <td className="px-3 py-2 font-medium text-gray-700">
+                            第{q}节{isCurrent && <span className="text-orange-600 text-xs ml-1">(进行中)</span>}
+                          </td>
+                          <td className="px-3 py-2 text-center font-semibold text-orange-600">{displayHome}</td>
+                          <td className="px-3 py-2 text-center font-semibold text-orange-600">{displayAway}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="border-t-2 border-gray-200 bg-gray-50 font-medium">
+                      <td className="px-3 py-2 text-gray-700">总分</td>
+                      <td className="px-3 py-2 text-center font-bold text-orange-600">{liveScores.homeScore}</td>
+                      <td className="px-3 py-2 text-center font-bold text-orange-600">{liveScores.awayScore}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader className="bg-orange-50">
+              <h3 className="font-semibold text-gray-900">得分走势（实时）</h3>
+            </CardHeader>
+            <CardBody>
+              <div className="h-64 w-full min-w-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={scoreChartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                    <Tooltip
+                      formatter={(value: number | undefined) => [value ?? '—', '']}
+                      labelFormatter={(label) => label}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="主队"
+                      name={homeTeam?.name || '主队'}
+                      stroke="#ea580c"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      connectNulls
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="客队"
+                      name={awayTeam?.name || '客队'}
+                      stroke="#2563eb"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                      connectNulls
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </CardBody>
+          </Card>
+        </>
       )}
 
       {/* 在场球员显示 */}
@@ -1351,8 +1544,12 @@ export const GameDetail: React.FC = () => {
         </div>
       )}
 
-      {/* 统计总览 */}
-      {currentPlayers.length > 0 && (
+      {/* 统计总览：仅显示有出场记录的队员 */}
+      {currentPlayers.length > 0 && (() => {
+        const playersInGame = currentPlayers.filter(
+          (p) => getPlayerStat(p.id, p.teamId).minutes > 0
+        );
+        return (
         <Card>
           <CardHeader>
             <h3 className="font-semibold text-gray-900">
@@ -1361,6 +1558,9 @@ export const GameDetail: React.FC = () => {
           </CardHeader>
           <CardBody>
             <div className="overflow-x-auto">
+              {playersInGame.length === 0 ? (
+                <p className="text-sm text-gray-500 py-4 text-center">暂无出场队员</p>
+              ) : (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50">
@@ -1380,7 +1580,7 @@ export const GameDetail: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentPlayers.map((player) => {
+                  {playersInGame.map((player) => {
                     const stat = getPlayerStat(player.id, player.teamId);
                     const isOnCourt = onCourtPlayers.has(player.id);
                     return (
@@ -1428,50 +1628,50 @@ export const GameDetail: React.FC = () => {
                     <td className="px-3 py-2">合计</td>
                     <td className="px-3 py-2 text-center text-gray-600">-</td>
                     <td className="px-3 py-2 text-center text-orange-600">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) => sum + getPlayerStat(p.id, p.teamId).points,
                         0
                       )}
                     </td>
                     <td className="px-3 py-2 text-center text-gray-600">-</td>
                     <td className="px-3 py-2 text-center">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) => sum + getPlayerStat(p.id, p.teamId).twoPointsMade,
                         0
                       )}
                       /
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) =>
                           sum + getPlayerStat(p.id, p.teamId).twoPointsAttempted,
                         0
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) => sum + getPlayerStat(p.id, p.teamId).threePointsMade,
                         0
                       )}
                       /
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) =>
                           sum + getPlayerStat(p.id, p.teamId).threePointsAttempted,
                         0
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) => sum + getPlayerStat(p.id, p.teamId).freeThrowsMade,
                         0
                       )}
                       /
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) =>
                           sum + getPlayerStat(p.id, p.teamId).freeThrowsAttempted,
                         0
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) =>
                           sum +
                           getPlayerStat(p.id, p.teamId).offensiveRebounds +
@@ -1480,31 +1680,31 @@ export const GameDetail: React.FC = () => {
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) => sum + getPlayerStat(p.id, p.teamId).assists,
                         0
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) => sum + getPlayerStat(p.id, p.teamId).steals,
                         0
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) => sum + getPlayerStat(p.id, p.teamId).blocks,
                         0
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) => sum + getPlayerStat(p.id, p.teamId).turnovers,
                         0
                       )}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      {currentPlayers.reduce(
+                      {playersInGame.reduce(
                         (sum, p) => sum + getPlayerStat(p.id, p.teamId).fouls,
                         0
                       )}
@@ -1512,10 +1712,12 @@ export const GameDetail: React.FC = () => {
                   </tr>
                 </tfoot>
               </table>
+              )}
             </div>
           </CardBody>
         </Card>
-      )}
+        );
+      })()}
     </div>
   );
 };

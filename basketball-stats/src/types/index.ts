@@ -17,6 +17,12 @@ export interface Team {
   createdAt: string;
 }
 
+// 单节比分：每节主队/客队得分（4 节）
+export interface QuarterScores {
+  home: number[];
+  away: number[];
+}
+
 // 比赛类型
 export interface Game {
   id: string;
@@ -28,6 +34,8 @@ export interface Game {
   location?: string;
   status: 'pending' | 'ongoing' | 'finished';
   createdAt: string;
+  /** 单节比分：home/away 各 4 个元素，对应 Q1～Q4 该节得分 */
+  quarterPoints?: QuarterScores;
 }
 
 // 队员数据统计类型
